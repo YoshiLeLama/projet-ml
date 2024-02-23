@@ -34,6 +34,12 @@ def clean_dataset(dataset: pd.DataFrame):
     columns = ['RoomService', 'FoodCourt', 'ShoppingMall', 'Spa', 'VRDeck']
     dataset[columns] = dataset[columns].fillna(value=0)
 
+    # On ajoute une colonne contenant la somme des achats
+    # et une colonne décrivant si l'individu a acheté quelque chose ou non
+    exp_feats = ['RoomService', 'FoodCourt', 'ShoppingMall', 'Spa', 'VRDeck']
+    dataset['Expenditure'] = dataset[exp_feats].sum(axis=1)
+    dataset['NoSpending']  = (dataset['Expenditure']==0).astype(int)
+
     # Les VIP n'ont majoritairement pas pris de CryoSleep
     dataset.loc[(dataset['CryoSleep'].isna()) & (dataset['VIP'] == True), 'CryoSleep'] = False
     dataset.loc[(dataset['CryoSleep'].isna()) & (dataset['VIP'] == False), 'CryoSleep'] = True
@@ -61,6 +67,12 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset = dataset.drop('Cabin', axis=1)
     dataset['Cabin_number'] = dataset['Cabin_number'].fillna(value=0).astype(int)
 
+    # Les Terriens sont majoritairement au deck G, ceux d'Europa aux decks C et B et les martiens au deck F
+    dataset.loc[(dataset['Deck'].isna()) & (dataset['HomePlanet'] == 'Earth'), 'Deck'] = 'G'
+    dataset.loc[(dataset['Deck'].isna()) & (dataset['HomePlanet'] == 'Europa') & (dataset['NoSpending'] == 0), 'Deck'] = 'C'
+    dataset.loc[(dataset['Deck'].isna()) & (dataset['HomePlanet'] == 'Europa'), 'Deck'] = 'B'
+    dataset['Deck'] = dataset['Deck'].fillna('F')
+
     # Les decks A, B, C et T ne contiennent que individus venant d'Europe
     dataset.loc[(dataset['HomePlanet'].isna()) & (dataset['Deck'].isin(['A', 'B', 'C', 'T'])), 'HomePlanet'] = 'Europa'
     # Le deck G ne contient que des Terriens
@@ -73,12 +85,6 @@ def clean_dataset(dataset: pd.DataFrame):
 
     # La majorité va à TRAPPIST
     dataset['Destination'] = dataset['Destination'].fillna('TRAPPIST-1e')
-
-    # On ajoute une colonne contenant la somme des achats
-    # et une colonne décrivant si l'individu a acheté quelque chose ou non
-    exp_feats = ['RoomService', 'FoodCourt', 'ShoppingMall', 'Spa', 'VRDeck']
-    dataset['Expenditure'] = dataset[exp_feats].sum(axis=1)
-    dataset['NoSpending']  = (dataset['Expenditure']==0).astype(int)
 
     # On suppose que les individus qui n'ont pas dépensé sont des enfants (0-18)
     dataset.loc[(dataset['Age'].isna()) & (dataset['NoSpending'] == 1), 'Age'] = np.random.randint(0, 18)
@@ -146,6 +152,8 @@ if __name__ == '__main__':
 
     dataset = clean_training_dataset(dataset)
 
+    #exit(0)
+
     train_ds, test_ds = split_dataset(dataset, 0.1)
 
     train_X = train_ds.drop("Transported", axis=1)
@@ -160,22 +168,27 @@ if __name__ == '__main__':
     from lightgbm import LGBMClassifier
     from sklearn.model_selection import GridSearchCV, cross_val_score
 
-    # grid_params = {'n_estimators': [50, 100, 150, 200], 'max_depth': [4, 8, 12], 'learning_rate': [0.05, 0.1, 0.15]}
-
-    # sh = GridSearchCV(estimator=LGBMClassifier(n_jobs=4, random_state=0), param_grid=grid_params).fit(train_X, train_Y)
-    # print("->", sh.best_params_)
-    # print('->', sh.best_score_)
-
-    model = LGBMClassifier(n_estimators=50, max_depth=4, learning_rate=0.15, num_leaves=31, n_jobs=4, random_state=0, verbose=-1)
-
     X = dataset.drop("Transported", axis=1)
     Y = dataset['Transported']
+
+    # grid_params = {'n_estimators': [50, 100, 150], 'max_depth': [4, 8, 12], 'learning_rate': [0.05, 0.1], 'num_leaves': [31, 63]}
+    # clf = GridSearchCV(estimator=LGBMClassifier(n_jobs=8, random_state=0, verbose=-1), param_grid=grid_params).fit(X, Y)
+    # print("->", clf.best_params_)
+    # print('->', clf.best_score_)
+
+    # model = clf.best_estimator_
+
+    model = LGBMClassifier(n_estimators=150, learning_rate=0.05, max_depth=4, num_leaves=31, n_jobs=8, random_state=0, verbose=-1)
+    #model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.05, max_depth=8, random_state=0)
+
+    print(model.get_params())
+
+    #model = RandomForestClassifier(n_estimators=200, max_depth=12)
+    #model = SVC(C=100, degree=5)
 
     scores = cross_val_score(model, X, Y, cv=5, scoring='accuracy')
     print(scores, scores.mean(), scores.std())
 
-    #model = SVC(C=50, degree=5)
-    #model = GradientBoostingClassifier(n_estimators=150, learning_rate=0.10, max_depth=4, random_state=0)
     model = model.fit(train_X, train_Y)
 
     test_res = model.predict(test_X)
