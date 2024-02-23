@@ -136,8 +136,9 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset = dataset.drop('Deck', axis=1)
     dataset = dataset.drop('Side', axis=1)
 
+
     # print(dataset.info())
-    # print(dataset.info())
+    # print(dataset.describe())
 
     return dataset
 
@@ -150,11 +151,14 @@ def split_dataset(dataset, test_ratio=0.20):
 if __name__ == '__main__':
     dataset = pd.read_csv("./train.csv")
 
-    dataset = clean_training_dataset(dataset)
-
     #exit(0)
 
     train_ds, test_ds = split_dataset(dataset, 0.1)
+    train_ds = train_ds.reset_index(drop=True)
+    test_ds = test_ds.reset_index(drop=True)
+
+    train_ds = clean_training_dataset(train_ds)
+    test_ds = clean_training_dataset(test_ds)
 
     train_X = train_ds.drop("Transported", axis=1)
     train_Y = train_ds['Transported']
@@ -167,6 +171,8 @@ if __name__ == '__main__':
     from sklearn.svm import SVC, LinearSVC
     from lightgbm import LGBMClassifier
     from sklearn.model_selection import GridSearchCV, cross_val_score
+
+    dataset = clean_training_dataset(dataset)
 
     X = dataset.drop("Transported", axis=1)
     Y = dataset['Transported']
