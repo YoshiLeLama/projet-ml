@@ -40,9 +40,11 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset['Expenditure'] = dataset[exp_feats].sum(axis=1)
     dataset['NoSpending']  = (dataset['Expenditure']==0).astype(int)
 
+    # Ceux qui n'ont rien dépensé sont en CryoSleep
+    dataset.loc[(dataset['CryoSleep'].isna()) & (dataset['NoSpending'] == 1), 'CryoSleep'] = True
+
     # Les VIP n'ont majoritairement pas pris de CryoSleep
-    dataset.loc[(dataset['CryoSleep'].isna()) & (dataset['VIP'] == True), 'CryoSleep'] = False
-    dataset.loc[(dataset['CryoSleep'].isna()) & (dataset['VIP'] == False), 'CryoSleep'] = True
+    dataset.loc[(dataset['VIP'].isna()) & (dataset['CryoSleep'] == True), 'VIP'] = False
 
     # On suppose que ceux qui ne sont pas notés VIP ne le sont pas, idem pour CryoSleep
     dataset['VIP'] = dataset['VIP'].fillna(0)
@@ -86,8 +88,6 @@ def clean_dataset(dataset: pd.DataFrame):
     # La majorité va à TRAPPIST
     dataset['Destination'] = dataset['Destination'].fillna('TRAPPIST-1e')
 
-    # On suppose que les individus qui n'ont pas dépensé sont des enfants (0-18)
-    dataset.loc[(dataset['Age'].isna()) & (dataset['NoSpending'] == 1), 'Age'] = np.random.randint(0, 18)
     dataset['Age'] = dataset['Age'].fillna(dataset['Age'].median())
 
     # On divise la colonne âge en groupes d'âge
@@ -124,6 +124,7 @@ def clean_dataset(dataset: pd.DataFrame):
     for col in exp_feats:
         dataset[col] = np.log(1+dataset[col])
 
+
     # On supprime les features inutiles
     dataset = dataset.drop('PassengerId', axis=1)
     dataset = dataset.drop('Name', axis=1)
@@ -135,7 +136,7 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset = dataset.drop('Cabin_number', axis=1)
     dataset = dataset.drop('Deck', axis=1)
     dataset = dataset.drop('Side', axis=1)
-
+    dataset = dataset.drop('VIP', axis=1)
 
     # print(dataset.info())
     # print(dataset.describe())
@@ -153,12 +154,9 @@ if __name__ == '__main__':
 
     #exit(0)
 
-    train_ds, test_ds = split_dataset(dataset, 0.1)
-    train_ds = train_ds.reset_index(drop=True)
-    test_ds = test_ds.reset_index(drop=True)
+    dataset = clean_training_dataset(dataset)
 
-    train_ds = clean_training_dataset(train_ds)
-    test_ds = clean_training_dataset(test_ds)
+    train_ds, test_ds = split_dataset(dataset, 0.1)
 
     train_X = train_ds.drop("Transported", axis=1)
     train_Y = train_ds['Transported']
@@ -170,9 +168,8 @@ if __name__ == '__main__':
     from sklearn.tree import DecisionTreeClassifier
     from sklearn.svm import SVC, LinearSVC
     from lightgbm import LGBMClassifier
-    from sklearn.model_selection import GridSearchCV, cross_val_score
-
-    dataset = clean_training_dataset(dataset)
+    from catboost import CatBoostClassifier
+    from sklearn.model_selection import GridSearchCV, cross_val_score, RandomizedSearchCV
 
     X = dataset.drop("Transported", axis=1)
     Y = dataset['Transported']
@@ -184,7 +181,40 @@ if __name__ == '__main__':
 
     # model = clf.best_estimator_
 
-    model = LGBMClassifier(n_estimators=200, learning_rate=0.05, max_depth=5, num_leaves=31, n_jobs=8, random_state=0, verbose=-1)
+    # lgb_params = {
+    #     'n_estimators': 100,
+    #     'max_depth': 7,
+    #     'learning_rate': 0.05,
+    #     'subsample': 0.2,
+    #     'colsample_bytree': 0.56,
+    #     'reg_alpha': 0.25,
+    #     'reg_lambda': 5e-08,
+    #     'objective': 'binary',
+    #     'metric': 'accuracy',
+    #     'boosting_type': 'gbdt',
+    #     'device': 'cpu',
+    #     'random_state': 1,
+    # }
+
+    # model = LGBMClassifier(**lgb_params, verbose=-1)
+
+    # param_dist = {
+    #     'n_estimators': np.arange(50, 1000,50),
+    #     'max_depth': np.arange(3, 15,2),
+    #     'learning_rate': np.arange(0.001, 0.02,0.002),
+    #     'subsample': [0.1,0.3,0.5,0.7,0.9],
+    #     'colsample_bytree': [0.1,0.3,0.5,0.7,0.9],
+    # }
+    
+    # random_search = RandomizedSearchCV(model, param_distributions=param_dist, cv=3, n_iter=20, random_state=1, n_jobs=-1)
+    # random_search.fit(train_X, train_Y)
+    # print("Best hyperparameters: ", random_search.best_params_)
+    # print("Best mean cross-validation score: {:.3f}".format(random_search.best_score_))
+    # model = random_search.best_estimator_
+    # lgb_params=random_search.best_params_
+
+    model = CatBoostClassifier(n_estimators=150, max_depth=4, learning_rate=0.15)
+    #model = LGBMClassifier(n_estimators=600, learning_rate=0.007, max_depth=9, colsample_bytree=0.3, subsample=0.3, n_jobs=8, random_state=0, verbose=-1)
     # model = GradientBoostingClassifier(n_estimators=200, learning_rate=0.05, max_depth=4, random_state=0)
     # model = RandomForestClassifier(n_estimators=200, max_depth=4)
 
