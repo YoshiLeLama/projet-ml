@@ -95,12 +95,12 @@ def clean_dataset(dataset: pd.DataFrame):
     for age_group in age_groups:
         dataset[age_group] = 0
 
-    dataset.loc[dataset['Age']<=12, age_groups[0]] = 0
+    dataset.loc[dataset['Age']<=12, age_groups[0]] = 1
     dataset.loc[(dataset['Age']>12) & (dataset['Age'] <= 18), age_groups[1]] = 1
-    dataset.loc[(dataset['Age']>18) & (dataset['Age'] <= 25), age_groups[2]] = 2
-    dataset.loc[(dataset['Age']>25) & (dataset['Age'] <= 30), age_groups[3]] = 3
-    dataset.loc[(dataset['Age']>30) & (dataset['Age'] <= 50), age_groups[4]] = 4
-    dataset.loc[dataset['Age']>50, age_groups[5]] = 5
+    dataset.loc[(dataset['Age']>18) & (dataset['Age'] <= 25), age_groups[2]] = 1
+    dataset.loc[(dataset['Age']>25) & (dataset['Age'] <= 30), age_groups[3]] = 1
+    dataset.loc[(dataset['Age']>30) & (dataset['Age'] <= 50), age_groups[4]] = 1
+    dataset.loc[dataset['Age']>50, age_groups[5]] = 1
 
     # On divise les numéros de cabine en région, car chaque région voit une tendance différente
     # concernant la probabilité d'avoir été transporté ou non
@@ -184,12 +184,12 @@ if __name__ == '__main__':
 
     # model = clf.best_estimator_
 
-    model = LGBMClassifier(n_estimators=150, learning_rate=0.05, max_depth=4, num_leaves=31, n_jobs=8, random_state=0, verbose=-1)
-    #model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.05, max_depth=8, random_state=0)
+    model = LGBMClassifier(n_estimators=200, learning_rate=0.05, max_depth=5, num_leaves=31, n_jobs=8, random_state=0, verbose=-1)
+    # model = GradientBoostingClassifier(n_estimators=200, learning_rate=0.05, max_depth=4, random_state=0)
+    # model = RandomForestClassifier(n_estimators=200, max_depth=4)
 
     print(model.get_params())
 
-    #model = RandomForestClassifier(n_estimators=200, max_depth=12)
     #model = SVC(C=100, degree=5)
 
     scores = cross_val_score(model, X, Y, cv=5, scoring='accuracy')
