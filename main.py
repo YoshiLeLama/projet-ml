@@ -29,19 +29,20 @@ def clean_dataset(dataset: pd.DataFrame):
     GHP_gb=dataset.groupby(['Group','HomePlanet'])['HomePlanet'].size().unstack().fillna(0)
     GHP_index = dataset[dataset['HomePlanet'].isna()][(dataset[dataset['HomePlanet'].isna()]['Group']).isin(GHP_gb.index)].index
     dataset.loc[GHP_index,'HomePlanet'] = dataset.iloc[GHP_index,:]['Group'].map(lambda x: GHP_gb.idxmax(axis=1)[x])
-
-    # On suppose que ceux pour qui des valeurs de dépense manquent n'ont pas dépensé
-    columns = ['RoomService', 'FoodCourt', 'ShoppingMall', 'Spa', 'VRDeck']
-    dataset[columns] = dataset[columns].fillna(value=0)
-
+    
     # On ajoute une colonne contenant la somme des achats
     # et une colonne décrivant si l'individu a acheté quelque chose ou non
     exp_feats = ['RoomService', 'FoodCourt', 'ShoppingMall', 'Spa', 'VRDeck']
+    dataset[exp_feats] = dataset[exp_feats].fillna(value=0)
     dataset['Expenditure'] = dataset[exp_feats].sum(axis=1)
     dataset['NoSpending']  = (dataset['Expenditure']==0).astype(int)
 
     # Ceux qui n'ont rien dépensé sont en CryoSleep
     dataset.loc[(dataset['CryoSleep'].isna()) & (dataset['NoSpending'] == 1), 'CryoSleep'] = True
+    
+    # Les enfants de moins de 12 ans ne dépensent pas, donc on suppose qu'une personne qui ne dépense pas 
+    # en n'étant pas en CryoSleep est un enfant (-12 ans)
+    dataset.loc[(dataset['Age'].isna()) & (dataset['CryoSleep'] == 0) & (dataset['NoSpending'] == 1), 'Age'] = 6
 
     # Les VIP n'ont majoritairement pas pris de CryoSleep
     dataset.loc[(dataset['VIP'].isna()) & (dataset['CryoSleep'] == True), 'VIP'] = False
@@ -85,6 +86,8 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset.loc[(dataset['HomePlanet'].isna()) & (dataset['Destination'].isin(['TRAPPIST-1e', 'PSO J318.5-22'])), 'HomePlanet'] = 'Earth'
     dataset['HomePlanet'] = dataset['HomePlanet'].fillna('Europa')
 
+    print(dataset.info())
+    
     # La majorité va à TRAPPIST
     dataset['Destination'] = dataset['Destination'].fillna('TRAPPIST-1e')
 
@@ -114,16 +117,19 @@ def clean_dataset(dataset: pd.DataFrame):
 
     # On divise les colonnes de chaînes de caractères en plusieurs colonnes d'entiers 
     # (1 si correspond à la valeur de la chaîne, 0 sinon)
-    dataset = custom_encoder(dataset, 'Side', ['P', 'S'])
-    dataset = custom_encoder(dataset, 'Deck', ['A','B','C','D','E','F','G','T'])
-    dataset = custom_encoder(dataset, 'HomePlanet', ['Earth', 'Mars', 'Europa'])
-    dataset = custom_encoder(dataset, 'Destination', ['TRAPPIST-1e','PSO J318.5-22','55 Cancri e'])
+    sides = ['P', 'S']
+    dataset = custom_encoder(dataset, 'Side', sides)
+    decks = ['A','B','C','D','E','F','G','T']
+    dataset = custom_encoder(dataset, 'Deck', decks)
+    planets = ['Earth', 'Mars', 'Europa']
+    dataset = custom_encoder(dataset, 'HomePlanet', planets)
+    destinations = ['TRAPPIST-1e','PSO J318.5-22','55 Cancri e']
+    dataset = custom_encoder(dataset, 'Destination', destinations)
 
     # On passe les dépenses au logarithme pour réduire la variance
     exp_feats.append('Expenditure')
     for col in exp_feats:
         dataset[col] = np.log(1+dataset[col])
-
 
     # On supprime les features inutiles
     dataset = dataset.drop('PassengerId', axis=1)
@@ -136,15 +142,28 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset = dataset.drop('Cabin_number', axis=1)
     dataset = dataset.drop('Deck', axis=1)
     dataset = dataset.drop('Side', axis=1)
-    dataset = dataset.drop('VIP', axis=1)
-
+    dataset = dataset.drop('Side_P', axis=1)
+    # dataset = dataset.drop('VIP', axis=1)
+    # dataset = dataset.drop(exp_feats, axis=1)
+    # dataset = dataset.drop('NoSpending', axis=1)
+    for i in [3, 5, 6, 7]:
+        dataset = dataset.drop('Cabin_region'+str(i), axis=1)
+    for deck in ['A', 'D', 'G', 'T']:
+        dataset = dataset.drop('Deck_' + deck, axis=1)
+    for planet in ['Mars']:
+        dataset = dataset.drop('HomePlanet_' + planet, axis=1)
+    for destination in ['PSO J318.5-22']:
+        dataset = dataset.drop('Destination_' + destination, axis=1)
+    for age_group in ['25-30', '30-50', '50+']:
+        dataset = dataset.drop(age_group, axis=1)
+    
     # print(dataset.info())
     # print(dataset.describe())
 
     return dataset
 
 
-def split_dataset(dataset, test_ratio=0.20):
+def split_dataset(dataset, test_ratio=0.1):
   test_indices = np.random.rand(len(dataset)) < test_ratio
   return dataset[~test_indices], dataset[test_indices]
 
@@ -214,7 +233,7 @@ if __name__ == '__main__':
     # lgb_params=random_search.best_params_
 
     model = CatBoostClassifier(n_estimators=150, max_depth=4, learning_rate=0.15)
-    #model = LGBMClassifier(n_estimators=600, learning_rate=0.007, max_depth=9, colsample_bytree=0.3, subsample=0.3, n_jobs=8, random_state=0, verbose=-1)
+    # model = LGBMClassifier(n_estimators=150, learning_rate=0.05, max_depth=4, n_jobs=8, random_state=0, verbose=-1)
     # model = GradientBoostingClassifier(n_estimators=200, learning_rate=0.05, max_depth=4, random_state=0)
     # model = RandomForestClassifier(n_estimators=200, max_depth=4)
 
