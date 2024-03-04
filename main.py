@@ -24,6 +24,13 @@ def clean_dataset(dataset: pd.DataFrame):
     # On récupère les noms de famille (inutile pour l'instant)
     dataset['Name'] = dataset['Name'].fillna("Unknown Unknown")
     dataset['Surname'] = dataset['Name'].str.split().str[-1]
+    
+    # On regarde qui voyage seul ou non
+    groups_size = dataset['Group'].value_counts().reset_index()
+    groups_size.columns = ['Group', 'GroupSize']
+    dataset = dataset.merge(groups_size, on='Group')
+    dataset.loc[(dataset['GroupSize'] == 1), 'Solo'] = 1
+    dataset['Solo'] = dataset['Solo'].fillna(0).astype(int)
 
     # Les membres d'un même groupe viennent tous de la même planète
     GHP_gb=dataset.groupby(['Group','HomePlanet'])['HomePlanet'].size().unstack().fillna(0)
@@ -86,8 +93,6 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset.loc[(dataset['HomePlanet'].isna()) & (dataset['Destination'].isin(['TRAPPIST-1e', 'PSO J318.5-22'])), 'HomePlanet'] = 'Earth'
     dataset['HomePlanet'] = dataset['HomePlanet'].fillna('Europa')
 
-    print(dataset.info())
-    
     # La majorité va à TRAPPIST
     dataset['Destination'] = dataset['Destination'].fillna('TRAPPIST-1e')
 
@@ -137,27 +142,30 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset = dataset.drop('Surname', axis=1)
     dataset = dataset.drop('Age', axis=1)
     dataset = dataset.drop('Group', axis=1)
+    dataset = dataset.drop('GroupSize', axis=1)
+    dataset = dataset.drop('Solo', axis=1)
     dataset = dataset.drop('HomePlanet', axis=1)
     dataset = dataset.drop('Destination', axis=1)
     dataset = dataset.drop('Cabin_number', axis=1)
     dataset = dataset.drop('Deck', axis=1)
     dataset = dataset.drop('Side', axis=1)
     dataset = dataset.drop('Side_P', axis=1)
-    # dataset = dataset.drop('VIP', axis=1)
+    dataset = dataset.drop('VIP', axis=1)
     # dataset = dataset.drop(exp_feats, axis=1)
     # dataset = dataset.drop('NoSpending', axis=1)
-    for i in [3, 5, 6, 7]:
-        dataset = dataset.drop('Cabin_region'+str(i), axis=1)
-    for deck in ['A', 'D', 'G', 'T']:
-        dataset = dataset.drop('Deck_' + deck, axis=1)
-    for planet in ['Mars']:
-        dataset = dataset.drop('HomePlanet_' + planet, axis=1)
-    for destination in ['PSO J318.5-22']:
-        dataset = dataset.drop('Destination_' + destination, axis=1)
-    for age_group in ['25-30', '30-50', '50+']:
-        dataset = dataset.drop(age_group, axis=1)
+    #for i in [3, 5, 6, 7]:
+    #    dataset = dataset.drop('Cabin_region'+str(i), axis=1)
+    dataset = dataset.drop('Deck_T', axis=1)
+    # for deck in ['A', 'D', 'G', 'T']:
+    #     dataset = dataset.drop('Deck_' + deck, axis=1)
+    # for planet in ['Mars']:
+    #     dataset = dataset.drop('HomePlanet_' + planet, axis=1)
+    # for destination in ['PSO J318.5-22']:
+    #     dataset = dataset.drop('Destination_' + destination, axis=1)
+    # for age_group in ['25-30', '30-50', '50+']:
+    #     dataset = dataset.drop(age_group, axis=1)
     
-    # print(dataset.info())
+    print(dataset.info())
     # print(dataset.describe())
 
     return dataset
@@ -167,15 +175,43 @@ def split_dataset(dataset, test_ratio=0.1):
   test_indices = np.random.rand(len(dataset)) < test_ratio
   return dataset[~test_indices], dataset[test_indices]
 
+def evaluate_bool_feature(dataset: pd.DataFrame, feature: str):
+    if (dataset[feature].dtype != 'int64'):
+        return 1
+    
+    true_transported = dataset[(dataset['Transported'] == 1) & (dataset[feature] == 1)].count().iloc[0]
+    true_not_transported = dataset[(dataset[feature] == 1)].count().iloc[0] - true_transported
+    
+    return abs(true_transported - true_not_transported) / len(dataset)
 
 if __name__ == '__main__':
     dataset = pd.read_csv("./train.csv")
 
-    #exit(0)
-
     dataset = clean_training_dataset(dataset)
-
-    train_ds, test_ds = split_dataset(dataset, 0.1)
+    
+    kept_features = []
+    features = []
+    
+    for feature in dataset:
+        if feature == 'Transported':
+            continue
+        
+        eval = evaluate_bool_feature(dataset, feature)
+        
+        print(feature, eval)
+        
+        features.append((feature, eval))
+    
+    features.sort(key=lambda x: x[1], reverse=True)
+    
+    for i in range(21):
+        kept_features.append(features[i][0])
+            
+    print(kept_features)
+    
+    dataset = dataset[kept_features + ['Transported']]
+    
+    train_ds, test_ds = split_dataset(dataset, 0.01)
 
     train_X = train_ds.drop("Transported", axis=1)
     train_Y = train_ds['Transported']
@@ -232,8 +268,8 @@ if __name__ == '__main__':
     # model = random_search.best_estimator_
     # lgb_params=random_search.best_params_
 
-    model = CatBoostClassifier(n_estimators=150, max_depth=4, learning_rate=0.15)
-    # model = LGBMClassifier(n_estimators=150, learning_rate=0.05, max_depth=4, n_jobs=8, random_state=0, verbose=-1)
+    model = CatBoostClassifier(n_estimators=200, max_depth=4)
+    # model = LGBMClassifier(n_estimators=150, learning_rate=0.15, max_depth=4, n_jobs=8, random_state=0, verbose=-1)
     # model = GradientBoostingClassifier(n_estimators=200, learning_rate=0.05, max_depth=4, random_state=0)
     # model = RandomForestClassifier(n_estimators=200, max_depth=4)
 
@@ -257,6 +293,10 @@ if __name__ == '__main__':
     sub_dataset = pd.read_csv('test.csv')
 
     sub_dataset = clean_dataset(sub_dataset)
+    
+    sub_dataset = sub_dataset[kept_features]
+    
+    print(sub_dataset.info())
 
     sub_results = model.predict(sub_dataset)
 
