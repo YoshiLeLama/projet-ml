@@ -204,14 +204,14 @@ if __name__ == '__main__':
     
     features.sort(key=lambda x: x[1], reverse=True)
     
-    for i in range(21):
+    for i in range(22):
         kept_features.append(features[i][0])
             
     print(kept_features)
     
     dataset = dataset[kept_features + ['Transported']]
     
-    train_ds, test_ds = split_dataset(dataset, 0.01)
+    train_ds, test_ds = split_dataset(dataset, 0.1)
 
     train_X = train_ds.drop("Transported", axis=1)
     train_Y = train_ds['Transported']
@@ -222,6 +222,7 @@ if __name__ == '__main__':
     from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier, HistGradientBoostingClassifier
     from sklearn.tree import DecisionTreeClassifier
     from sklearn.svm import SVC, LinearSVC
+    from sklearn.naive_bayes import GaussianNB
     from lightgbm import LGBMClassifier
     from catboost import CatBoostClassifier
     from sklearn.model_selection import GridSearchCV, cross_val_score, RandomizedSearchCV
@@ -272,10 +273,11 @@ if __name__ == '__main__':
     # model = LGBMClassifier(n_estimators=150, learning_rate=0.15, max_depth=4, n_jobs=8, random_state=0, verbose=-1)
     # model = GradientBoostingClassifier(n_estimators=200, learning_rate=0.05, max_depth=4, random_state=0)
     # model = RandomForestClassifier(n_estimators=200, max_depth=4)
+    # model = SVC()
+    # model = GaussianNB()
 
     print(model.get_params())
 
-    #model = SVC(C=100, degree=5)
 
     scores = cross_val_score(model, X, Y, cv=5, scoring='accuracy')
     print(scores, scores.mean(), scores.std())
