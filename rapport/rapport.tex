@@ -1,0 +1,59 @@
+\documentclass[a4paper]{article}
+
+\usepackage{geometry}
+\usepackage[francais]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage[T1]{fontenc}
+\usepackage{listings}
+
+\title{Projet de Machine Learning - Spaceship Titanic}
+\author{Antoine ROUMILHAC \\ Alban RIO \\ Nabil DJELLOUDI \\ Mohammed Yacine BRAHMIA}
+\date{Mars 2024}
+
+\newcommand{\illustration}[3]{
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=#3]{#1}
+        \caption{#2}
+    \end{figure}
+}
+
+\begin{document}
+    \maketitle
+
+    Nom de l'équipe Kaggle : On coule
+
+    \section{Analyse des données}
+
+    \subsection{Répartition passagers transportés / non transportés}
+
+    Dans les données d'entraînement, 4378 des passagers ont été transportés, contre 4315 qui ne l'ont pas été, donc l'ensemble est équilibré. On n'aura donc pas à ajouter de poids lors de la phase d'entraînement.
+
+    \subsection{Valeurs manquantes}
+
+    
+    Sur la Figure 1, on peut observer qu'il y a des données manquantes dans l'ensemble d'entraînement, mais qu'elles sont globalement réparties entre les différents passagers.
+    On va donc pouvoir remplir les données manquantes en exploitant les relations entre les données.
+    
+    \illustration{images/Figure 1.png}{Heatmap des données manquantes sur l'ensemble d'entraînement}{8cm}
+    \subsection{Variables intéressantes}
+
+    La variable CryoSleep semble être très intéressante à utiliser, car comme présenté sur la figure 2, les personnes ayant pris le CryoSleep n'ont très majoritairement pas été transportées,
+    et inversement les personnes ayant pris le CryoSleep ont très majoritairement été transportées.
+    
+    \illustration{images/Figure 2.png}{Répartition des personnes selon le cryosleep et leur état de transport}{8cm}
+    
+    On peut voir sur la figure 3 que les personnes ayant entre 0 et 12 ans ont été transportées en majorité, 
+    tandis que celles ayant entre 18 et 25 ans, et entre 30 et 40 ans, ont été peu moins transportées que la moyenne.
+    Il serait donc intéressant d'extraire ces tranches d'âge pour les utiliser pour l'entraînement.
+
+    \illustration{images/Figure 3.png}{Répartition des personnes selon leur âge et leur état de transport}{8cm}
+    
+    \illustration{images/Figure 4.png}{Répartition des personnes selon leur planète et leur état de transport}{8cm}
+    
+    \illustration{images/Figure 5.png}{Répartition des personnes selon leur destination et leur état de transport}{8cm}
+    
+    \illustration{images/Figure 6.png}{Répartition des personnes selon leurs dépenses dans le room service et leur état de transport}{8cm}
+
+\end{document}

@@ -135,7 +135,30 @@ def clean_dataset(dataset: pd.DataFrame):
     exp_feats.append('Expenditure')
     for col in exp_feats:
         dataset[col] = np.log(1+dataset[col])
-
+        
+    # dataset['NoSpaSpending'] = (dataset['Spa'] <= 0).astype(int)
+    # dataset['SpaPlus5Spending'] = (dataset['Spa'] > 5).astype(int)
+    # dataset = dataset.drop('Spa', axis=1)
+    
+    # dataset['NoVRDeckSpending'] = (dataset['VRDeck'] <= 0).astype(int)
+    # dataset['VRDeckPlus6Spending'] = (dataset['VRDeck'] >= 6).astype(int)
+    # dataset = dataset.drop('VRDeck', axis=1)
+    
+    # dataset['NoRoomServiceSpending'] = (dataset['RoomService'] <= 0).astype(int)
+    # dataset['RoomServicePlus6Spending'] = (dataset['RoomService'] >= 6).astype(int)
+    # dataset = dataset.drop('RoomService', axis=1)
+    
+    # dataset['NoShoppingMallSpending'] = (dataset['ShoppingMall'] <= 0).astype(int)
+    # dataset['ShoppingMall0to6'] = ((dataset['ShoppingMall'] > 0) & (dataset['ShoppingMall'] <= 6)).astype(int)
+    # dataset = dataset.drop('ShoppingMall', axis=1)
+    
+    # dataset['NoFoodCourtSpending'] = (dataset['FoodCourt'] <= 0).astype(int)
+    # dataset['FoodCourt0to6'] = ((dataset['FoodCourt'] > 0) & (dataset['FoodCourt'] <= 6)).astype(int)
+    # dataset = dataset.drop('FoodCourt', axis=1)
+    
+    # dataset['ExpenditurePlus6Spending'] = ((dataset['Expenditure'] >= 6)).astype(int)
+    # dataset = dataset.drop('Expenditure', axis=1)
+        
     # On supprime les features inutiles
     dataset = dataset.drop('PassengerId', axis=1)
     dataset = dataset.drop('Name', axis=1)
@@ -188,7 +211,7 @@ if __name__ == '__main__':
     dataset = pd.read_csv("./train.csv")
 
     dataset = clean_training_dataset(dataset)
-    
+        
     kept_features = []
     features = []
     
@@ -211,7 +234,7 @@ if __name__ == '__main__':
     
     dataset = dataset[kept_features + ['Transported']]
     
-    train_ds, test_ds = split_dataset(dataset, 0.1)
+    train_ds, test_ds = split_dataset(dataset, 0.05)
 
     train_X = train_ds.drop("Transported", axis=1)
     train_Y = train_ds['Transported']
