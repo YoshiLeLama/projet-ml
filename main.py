@@ -21,22 +21,6 @@ def clean_dataset(dataset: pd.DataFrame):
     # On récupère les numéros de groupe
     dataset['Group'] = dataset['PassengerId'].str.split('_').str[0]
 
-    # On récupère les noms de famille (inutile pour l'instant)
-    dataset['Name'] = dataset['Name'].fillna("Unknown Unknown")
-    dataset['Surname'] = dataset['Name'].str.split().str[-1]
-    
-    # On regarde qui voyage seul ou non
-    groups_size = dataset['Group'].value_counts().reset_index()
-    groups_size.columns = ['Group', 'GroupSize']
-    dataset = dataset.merge(groups_size, on='Group')
-    dataset.loc[(dataset['GroupSize'] == 1), 'Solo'] = 1
-    dataset['Solo'] = dataset['Solo'].fillna(0).astype(int)
-
-    # Les membres d'un même groupe viennent tous de la même planète
-    GHP_gb=dataset.groupby(['Group','HomePlanet'])['HomePlanet'].size().unstack().fillna(0)
-    GHP_index = dataset[dataset['HomePlanet'].isna()][(dataset[dataset['HomePlanet'].isna()]['Group']).isin(GHP_gb.index)].index
-    dataset.loc[GHP_index,'HomePlanet'] = dataset.iloc[GHP_index,:]['Group'].map(lambda x: GHP_gb.idxmax(axis=1)[x])
-    
     # On ajoute une colonne contenant la somme des achats
     # et une colonne décrivant si l'individu a acheté quelque chose ou non
     exp_feats = ['RoomService', 'FoodCourt', 'ShoppingMall', 'Spa', 'VRDeck']
@@ -44,24 +28,12 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset['Expenditure'] = dataset[exp_feats].sum(axis=1)
     dataset['NoSpending']  = (dataset['Expenditure']==0).astype(int)
 
-    # Ceux qui n'ont rien dépensé sont en CryoSleep
-    dataset.loc[(dataset['CryoSleep'].isna()) & (dataset['NoSpending'] == 1), 'CryoSleep'] = True
-    
-    # Les enfants de moins de 12 ans ne dépensent pas, donc on suppose qu'une personne qui ne dépense pas 
-    # en n'étant pas en CryoSleep est un enfant (-12 ans)
-    dataset.loc[(dataset['Age'].isna()) & (dataset['CryoSleep'] == 0) & (dataset['NoSpending'] == 1), 'Age'] = 6
+    # Remplissage des données manquantes
 
-    # Les VIP n'ont majoritairement pas pris de CryoSleep
-    dataset.loc[(dataset['VIP'].isna()) & (dataset['CryoSleep'] == True), 'VIP'] = False
-
-    # On suppose que ceux qui ne sont pas notés VIP ne le sont pas, idem pour CryoSleep
-    dataset['VIP'] = dataset['VIP'].fillna(0)
-    dataset['CryoSleep'] = dataset['CryoSleep'].fillna(0)
-
-    # On change les types booléens en type entier
-    labels = ['VIP', 'CryoSleep']
-    for label in labels:
-        dataset[label] = dataset[label].astype(int)
+    # Les membres d'un même groupe viennent tous de la même planète
+    GHP_gb=dataset.groupby(['Group','HomePlanet'])['HomePlanet'].size().unstack().fillna(0)
+    GHP_index = dataset[dataset['HomePlanet'].isna()][(dataset[dataset['HomePlanet'].isna()]['Group']).isin(GHP_gb.index)].index
+    dataset.loc[GHP_index,'HomePlanet'] = dataset.iloc[GHP_index,:]['Group'].map(lambda x: GHP_gb.idxmax(axis=1)[x])
 
     # On suppose que les membres d'un groupe dont la cabin est inconnue sont
     # dans la même cabin que l'un des autres membres du groupe
@@ -76,6 +48,18 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset[['Deck', 'Cabin_number', 'Side']] = dataset['Cabin'].str.split('/', expand=True)
     dataset = dataset.drop('Cabin', axis=1)
     dataset['Cabin_number'] = dataset['Cabin_number'].fillna(value=0).astype(int)
+
+    # Ceux qui n'ont rien dépensé sont en CryoSleep
+    dataset.loc[(dataset['CryoSleep'].isna()) & (dataset['NoSpending'] == 1), 'CryoSleep'] = True
+
+    # Les enfants de moins de 12 ans ne dépensent pas, donc on suppose qu'une personne qui ne dépense pas 
+    # en n'étant pas en CryoSleep est un enfant (-12 ans)
+    dataset.loc[(dataset['Age'].isna()) & (dataset['CryoSleep'] == 0) & (dataset['NoSpending'] == 1), 'Age'] = 6
+    # la valeur exacte de l'âge n'a pas d'importance, le tout est qu'il soit dans [0,12] 
+
+    # On suppose que ceux qui ne sont pas notés VIP ne le sont pas, idem pour CryoSleep
+    dataset['VIP'] = dataset['VIP'].fillna(0)
+    dataset['CryoSleep'] = dataset['CryoSleep'].fillna(0)
 
     # Les Terriens sont majoritairement au deck G, ceux d'Europa aux decks C et B et les martiens au deck F
     dataset.loc[(dataset['Deck'].isna()) & (dataset['HomePlanet'] == 'Earth'), 'Deck'] = 'G'
@@ -97,6 +81,22 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset['Destination'] = dataset['Destination'].fillna('TRAPPIST-1e')
 
     dataset['Age'] = dataset['Age'].fillna(dataset['Age'].median())
+
+    # Optimisation
+
+    # On regarde qui voyage seul ou non
+    groups_size = dataset['Group'].value_counts().reset_index()
+    groups_size.columns = ['Group', 'GroupSize']
+    dataset = dataset.merge(groups_size, on='Group')
+    dataset.loc[(dataset['GroupSize'] == 1), 'Solo'] = 1
+    dataset['Solo'] = dataset['Solo'].fillna(0).astype(int)
+
+    # Adaptation des données pour le modèle 
+
+    # On change les types booléens en type entier
+    labels = ['VIP', 'CryoSleep']
+    for label in labels:
+        dataset[label] = dataset[label].astype(int)
 
     # On divise la colonne âge en groupes d'âge
     age_groups = ['0-12', '12-18', '18-25', '25-30', '30-50', '50+']
@@ -162,7 +162,6 @@ def clean_dataset(dataset: pd.DataFrame):
     # On supprime les features inutiles
     dataset = dataset.drop('PassengerId', axis=1)
     dataset = dataset.drop('Name', axis=1)
-    dataset = dataset.drop('Surname', axis=1)
     dataset = dataset.drop('Age', axis=1)
     dataset = dataset.drop('Group', axis=1)
     dataset = dataset.drop('GroupSize', axis=1)
