@@ -165,31 +165,14 @@ def clean_dataset(dataset: pd.DataFrame):
     dataset = dataset.drop('Age', axis=1)
     dataset = dataset.drop('Group', axis=1)
     dataset = dataset.drop('GroupSize', axis=1)
-    dataset = dataset.drop('Solo', axis=1)
     dataset = dataset.drop('HomePlanet', axis=1)
     dataset = dataset.drop('Destination', axis=1)
     dataset = dataset.drop('Cabin_number', axis=1)
     dataset = dataset.drop('Deck', axis=1)
     dataset = dataset.drop('Side', axis=1)
     dataset = dataset.drop('Side_P', axis=1)
-    dataset = dataset.drop('VIP', axis=1)
-    # dataset = dataset.drop(exp_feats, axis=1)
-    # dataset = dataset.drop('NoSpending', axis=1)
-    #for i in [3, 5, 6, 7]:
-    #    dataset = dataset.drop('Cabin_region'+str(i), axis=1)
     dataset = dataset.drop('Deck_T', axis=1)
-    # for deck in ['A', 'D', 'G', 'T']:
-    #     dataset = dataset.drop('Deck_' + deck, axis=1)
-    # for planet in ['Mars']:
-    #     dataset = dataset.drop('HomePlanet_' + planet, axis=1)
-    # for destination in ['PSO J318.5-22']:
-    #     dataset = dataset.drop('Destination_' + destination, axis=1)
-    # for age_group in ['25-30', '30-50', '50+']:
-    #     dataset = dataset.drop(age_group, axis=1)
     
-    print(dataset.info())
-    # print(dataset.describe())
-
     return dataset
 
 
@@ -300,9 +283,10 @@ if __name__ == '__main__':
 
     print(model.get_params())
 
-
     scores = cross_val_score(model, X, Y, cv=5, scoring='accuracy')
     print(scores, scores.mean(), scores.std())
+
+    exit(0)
 
     model = model.fit(train_X, train_Y)
 

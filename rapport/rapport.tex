@@ -8,6 +8,7 @@
 \usepackage{listings}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{hyperref}
 
 \title{Projet de Machine Learning - Spaceship Titanic}
 \author{Antoine ROUMILHAC \\ Alban RIO \\ Nabil DJELLOUDI \\ Mohammed Yacine BRAHMIA}
@@ -75,7 +76,7 @@
     \illustration{images/Figure 6.png}{Répartition des personnes selon leurs dépenses dans le room service et leur état de transport}{6cm}
 
     Pour analyser les tendances pour l'identifiant des cabines, on l'a découpé selon les indications du sujet :
-    le pont (Deck : de A à G et T), le numéro de cabine, et le côté (Side : S ou P)
+    le pont (Deck : de A à G et T), le numéro de cabine, et le côté (Side : S ou P). La figure 7 montre le résultat de ces découpes.
 
     On peut observer que les passagers sur les ponts B et C ont été majoritairement transportés,
     tandis que les passagers sur les ponts F et E ont été majoritairement non transportés.
@@ -92,17 +93,17 @@
         \centering
         \begin{subfigure}{.5\textwidth}
             \centering
-            \includegraphics[width=\linewidth]{images/Figure 7.png}
+            \includegraphics[width=\linewidth]{images/Figure 7-1.png}
             \caption{Pont (Deck)}
         \end{subfigure}%
         \begin{subfigure}{.5\textwidth}
             \centering
-            \includegraphics[width=\linewidth]{images/Figure 8.png}
+            \includegraphics[width=\linewidth]{images/Figure 7-2.png}
             \caption{Côté (Side)}
         \end{subfigure}
         \begin{subfigure}{.5\textwidth}
             \centering
-            \includegraphics[width=\linewidth]{images/Figure 9.png}
+            \includegraphics[width=\linewidth]{images/Figure 7-3.png}
             \caption{Numéro de cabine}
         \end{subfigure}
         \caption{Répartition des passagers selon leur cabine}
@@ -154,23 +155,197 @@
 
     Enfin on définit les destinations manquantes comme étant TRAPPIST-1e, et les âges comme étant l'âge médian.
 
-    Au terme de ces remplissages, nous n'avons donc plus de valeurs manquantes dans l'ensemble.
+    Au terme de ces traitements, nous n'avons donc plus de valeurs manquantes dans l'ensemble d'entraînement et de test.
 
-    \subsection{Choix des variables}
+    \subsection{Traitement et choix des variables}
 
-    Tout d'abord, on peut d'ores et déjà éliminer les variables
+    Avant toute chose, on crée également une variable booléenne, nommée $Solo$, qui est à 1 si un passager voyage seul, 0 sinon. 
+    On utilise pour cela les numéros de groupe qui sont présents dans le $PassengerId$. En effet, un passager a significativement plus de chance d'être
+    transporté s'il est seul que s'il est en groupe, comme montré dans la figure 10.
+
+    \illustration{images/Figure 8.png}{Répartition des passagers selon qu'ils voyagent seuls ou non}{8cm}
+
+    Pour les variables de type nombre flottant concernant les dépenses des passagers, nous avons décidé de toutes les garder, car expérimentalement
+    les résultats étaient meilleurs avec, plutôt qu'en utilisant des variables booléennes qui reflètent le fait que le passager a dépensé ou non.
+    Toutefois, parce que la majorité des passagers ne dépensent pas, il nous a semblé intéressant de créer la variable booléenne $NoSpending$
+    qui est à Vrai si le passager n'a rien dépensé, ainsi que la variable $Expenditure$ qui est la somme de toutes les dépenses du passager.
+    On a également décidé de passer ces variables au logarithme, pour réduire l'écart-type et avoir de meilleurs résultats : $depenses_{log} = \log{(1+depenses)}$
+
+    Pour la variable $Age$, et comme noté dans l'analyse statistique, on peut discerner une tendance pour $Transported$ selon la classe d'âge
+    des passagers. On crée donc 6 variables booléenne reflétant l'appartenance à une classe d'âge pour chaque passager : \textit{0-12}, \textit{12-18}, \textit{18-25}, 
+    \textit{25-30}, \textit{30-50} et \textit{50}.
+    Chaque variable est à 1 si le passager fait partie de cette classe d'âge, 0 sinon. 
+
+    On fait une manipulation similaire concernant le numéro de cabine, en les divisant en groupes de largeur 300, c'est-à-dire en ayant une variable
+    à 1 si le numéro est entre 0 et 299, 0 sinon, une autre variable à 1 si le numéro est entre 300 et 599, 0 sinon, ... , et enfin une variable à 1 si le numéro 
+    est supérieur à 1800, 0 sinon. Elles sont nommées {\it Cabin\_region1}, {\it Cabin\_region2}, etc. jusqu'à {\it Cabin\_region7}.
+
+    Ensuite on encode les variables $Side$, $Deck$, $HomePlanet$ et $Destination$, en les remplaçant par un nombre de variables booléennes égal au nombre
+    de valeurs différentes de chaque variable, qui sont à 1 ou 0 selon que la variable d'origine avait la valeur correspondant à chaque nouvelle variable.
+    Cela suit le principe du One-Hot Encoding. Il est nécessaire de l'utiliser car les algorithmes que nous avons utilisé ne supportent pour la plupart pas
+    la présence de variables non numériques dans l'ensemble d'entraînement.
+
+    On a ainsi terminé le traitement des variables, on peut désormais supprimer les variables inutiles. On supprime tout d'abord les variables qui prennent une valeur
+    unique par passager : $PassengerId$ et $Name$.
+    Ensuite, on enlève les variables qu'on a transformé au préalable en ensemble de variables booléennes : $Age$ et $Cabin_number$.
+    De même pour celles qui ont été encodées : $Side$, $Deck$ $HomePlanet$ et $Destination$.
+
+    Ensuite, on a fait le choix de supprimer deux des variables restantes : $Side_P$, car le vaisseau n'ayant que deux côtés, cette variable est
+    redondante par rapport à $Side_S$, et $Deck_T$ car le nombre de passagers sur ce pont est extrêmement faible, et il n'y pas de tendance significative
+    donc la garder créerait du bruit.
+
+    Finalement, pour sélectionner les variables booléennes les plus intéressantes de l'ensemble d'entraînement, on a codé une fonction qui calcule pour chaque variable
+    entière un score. Plus ce score est élevé, plus la variable voit une grande différence entre le nombre de passagers qui ont cette variable à 1 (soit True) et qui ont été transportés,
+    et le nombre de passagers dont la valeur est aussi à 1 (soit True) et qui n'ont pas été transportés, et ce relativement à la taille de l'échantillon.
+    Nous avons essayé plusieurs formules pour calculer ce score, et les meilleurs résultats ont été obtenus avec celle-ci : 
+    $$ score_{var} = \frac{abs(|Tdataset_{Transported=True \land var=True}| - |Tdataset_{Transported=False \land var=True}|)}{|Tdataset|} $$
+    où $Tdataset$ correspond à l'ensemble d'entraînement, et $abs$ à la fonction valeur absolue.
+    Diviser par le nombre total de passagers permet d'éviter qu'une variable qui est à 1 pour très peu de passagers ne soit gardée,
+    évitant ainsi un sur-entraînement, qui pourrait être dû à du bruit ou à un manque de données dans l'ensemble d'entraînement.
+
+    Le nombre optimal de variables à sélectionner peut être légèrement différent selon l'algorithme d'apprentissage utilisé, 
+    mais nous garderons ici 22 variables, ce nombre nous donnant les meilleurs résultats avec l'algorithme que nous avons choisi au final. 
 
     \section{Méthodes et paramètres}
 
-    (4) RandomForestClassifier, (3) GradientBoostingClassifier, (2) LGBMClassifier, (5) SVM, (6) GaussianNB, (1) Catboost
-    
-    Après avoir essayé différents algorithmes de machine learning, nous avons choisi l'algorithme catboost du fait des résultats supérieurs.
-    Afin de déterminer les meilleurs paramètres du modèle, nous avons utilisé l'outil RandomizedSearchCV permettant d'essayer un grand nombre 
-    de paramètres puis de garder ceux offrant les meilleures performances
+    \subsection{Sélection des hyperparamètres}
+
+    Pour sélectionner les meilleurs hyperparamètres, nous avons utilisé deux fonctions de la librarie scikit-learn : {\it GridSearchCV} et {\it RandomizedSearchCV}.
+    Les deux fonctions sont similaires, elles testent les performances des modèles avec différentes combinaisons d'hyperparamètres d'après un ensemble de valeurs d'hyperparamètres
+    qui leur sont données, la différence étant que {\it GridSearchCV} teste toutes les combinaisons possibles, tandis que
+    {\it RandomizedSearchCV} n'en teste qu'un nombre prédéterminé, permettant d'accélérer les tests.
+
+    \subsection{Méthodes à base de forêts}
+
+    Après avoir regardé les solutions données par les autres participants à la compétition, et en raison du grand nombre de variables booléennes que nous avons dans notre
+    ensemble d'entraînement, nous avons commencé par utiliser des algorithmes à base de forêts.
+
+    Tout d'abord, nous avons utilisé l'algorithme RandomForestClassifier, fourni par la bibliothèque scikit-learn.
+    C'est un algorithme basé sur une forêt d'arbres de décision, ces derniers étant entraînés sur des sous-ensembles aléatoires de l'ensemble de départ.
+    Les hyperparamètres que nous avons testés pour cet algorithme sont {\it n\_estimators}, qui détermine le nombre d'arbres d'arbres dans la forêt,
+    et {\it max\_depth}, qui détermine la profondeur maximale des arbres.
+
+    Nous avons ensuite essayé l'algorithme {\it GradientBoostingClassifier} et sa variante {\it HistGradientBoostingClassifier}, également de la bibliothèque scikit-learn.
+    Comme leur nom l'indique, ils utilisent la technique du Gradient Boosting pour parvenir à leurs résultats. 
+    D'après le site de scikit-learn \footnote{\url{https://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_hist_grad_boosting_comparison.html}}, les performances de
+    ces algorithmes peuvent être meilleures que {\it RandomForestClassifier}.
+    Les hyperparamètres que nous avons testés pour ces algorithmes sont {\it learning\_rate}, le taux d'apprentissage qui définit l'importance de la contribution de chaque arbre ;
+    {\it n\_estimators}, qui correspond au nombre d'étapes de boosting que l'algorithme va réaliser ; et {\it max\_depth} qui correspond à la profondeur maximale de chaque arbre.
+
+    Nous avons également testé un autre algorithme qui est revenu régulièrement dans les solutions des autres participants, qui est LGBMClassifier,
+    de la bibliothèque LightGBM. Il s'agit également d'un algorithme de Gradient Boosting, et les auteurs promettent de meilleurs résultats et un temps 
+    d'entraînement réduit par rapport aux autres algorithmes de Gradient Boosting.
+    Tout comme le principe de l'algorithme, les hyperparamètres sont assez similaires à ceux de {\it GradientBoostingClassifier}. Nous avons donc testé les
+    mêmes, à savoir {\it learning\_rate }, {\it n\_estimators} et {\it max\_depth}, et en plus de cela nous avons aussi testé {\it num\_leaves}. Ce dernier définit
+    le nombre maximum de feuilles pour chacun des arbres construits par l'algorithme.
+
+    Enfin, le dernier algorithme basé sur des arbres que nous avons testé est {\it CatBoostClassifier} de la bibliothèque CatBoost.
+    Encore une fois, il s'agit d'un algorithme de Gradient Boosting sur des arbres de décision, mais qui promet toutefois 
+    de très bonnes performances même avec les paramètres par défaut.
+    L'algorithme est en effet capable de calculer lui même le taux d'apprentissage optimal à partir de l'ensemble d'entraînement, permettant de
+    réduire le temps passé à tester tous les paramètres. Nous avons toute fois commencé par tester nous mêmes les valeurs 
+    de taux d'apprentissage optimales pour confirmer que le calcul réalisé est correct.
+    Les hyperparamètres que nous avons testés sont donc {\it learning\_rate}, {\it n\_estimators} et {\it max\_depth}.
+
+    \subsection{Autres algorithmes testés}
+
+    Nous avons également testé {\it SVC} de scikit-learn, qui est l'implémentation de l'algorithme de classification basé sur les SVM, et
+    également {\it GaussianNB}, qui est l'implémentation de l'algorithme de classification naïve bayésienne.
+    Le paramètre que nous avons testé sur le premier est {\it C}, qui correspond à la constante {\it C}
+    des SVM.
+    Pour le second, nous n'avons pas testé d'hyperparamètres et avons gardé ceux par défaut.
 
     \section{Plan de test}
 
+    \subsection{Évaluation du modèle}
+
+    Pour évaluer le modèle, nous avons utilisé deux métriques : la précision ({\it accuracy}) et l'écart-type de la précision de la prédicition sur l'ensemble de test.
+
+    La précision correspond à la proportion de prédictions justes. Nous regardons la précision sur l'ensemble d'entraînement et
+    de test pour s'assurer que nous ne faisons pas de sur-entraînement, en essayant de garder les deux valeurs assez proches.
+
+    Pour mesurer l'écart-type, on utilise la fonction {\it cross\_val\_score} de scikit-learn. Elle permet de réaliser une
+    validation croisée ({\it cross validation}) du modèle, et renvoie une ou des métriques mesurées pour chacune des étapes de
+    la validation croisée. Dans notre cas, nous voulons la précision, donc la fonction renvoie la précision de la prédicition
+    pour chaque itération de la validation croisée.
+    Ensuite, nous prenons simplement l'écart-type.
+
+    Notre objectif pour avoir le meilleur modèle possible est donc d'avoir une précision moyenne haute, tout en ayant un écart-type faible,
+    de manière à fiabiliser et à éviter de trop gros écarts entre les différentes itérations d'entraînement de notre modèle.
+    Un écart-type trop haut pourrait amener à avoir de mauvais résultats sur la prédiction pour la compétition, alors même que la
+    précision moyenne reste inchangée.
+
+    \subsection{Procédure de test}
+
+    Pour tester les performances d'un algorithme que nous pourrions utiliser pour la compétition, nous réalisons les étapes suivantes.
+
+    On commence par découper l'ensemble de données d'entraînement, une partie (entre 10\% et 20\%) sert d'ensemble de test pour
+    mesurer les performances de prédiction du modèle, et le reste sert pour entraîner le modèle.
+    On conserve séparément la colonne {\it Transported} de chacun de ces ensembles pour pouvoir mesurer la précision après les prédictions.
+
+    Pour chaque algorithme, on utilise soit {\it RandomizedSearchCV}, soit {\it GridSearchCV} pour trouver une bonne combinaison d'hyperparamètres.
+    Par la suite, on garde ces hyperparamètres pour l'entraînement du modèle.
+
+    On réalise ensuite la validation croisée pour mesurer si les performances du modèle varient peu pour chaque itération que l'on réalise,
+    et aussi si l'on obtient une bonne précision en moyenne.
+
+    Ensuite, lorsque l'écart-type de la précision du modèle est satisfaisante, on peut véritablement entraîner le modèle, puis
+    faire la prédiction sur l'ensemble d'entraînement et sur l'ensemble de test.
+
+    Après, on mesure la précision de ces prédictions, et si elles sont également satisfaisantes, on peut finalement 
+    faire une prédiction sur l'ensemble de test de la compétition.
+
+    On exporte les résultats dans un fichier csv, puis on le soumet sur les dépose sur Kaggle.
+
     \section{Résultats}
+
+    \subsection{Sélection des variables}
+
+    Pour ce test sur la sélection des variables, on utilise l'algorithme {\it CatBoostClassifier}, qui est l'algorithme qui nous a donné les meilleures performances. 
+    On utilise les hyperparamètres $n\_estimatiors = 200$ et $max\_depth = 4$.
+
+    On garde toujours toutes les variables flottantes de dépenses, car en supprimant une ou plusieurs, on obtient des scores peu élevés,
+    en moyenne autour de 0.72, au lieu de 0.79.
+
+    Pour les autres variables, on fait varier le nombre de variables que l'on veut garder, 
+    et celles avec le meilleur score (voir 2.2) sont sélectionnées.
+
+    Pour avoir le nombre optimal de variables, on regarde la précision moyenne et l'écart-type en utilisant la validation croisée.
+
+    Les résultats que l'on obtient sont les suivants :
+
+    \begin{tabular}{| l | *{6}{c|}}
+        \hline
+        Nombre de variables & 15 & 16 & 17 & 18 & 19 & 20
+        \tabularnewline
+        \hline
+        Précision moyenne & 0.7974 & 0.7971 & 0.7999 & 0.8012 & 0.8013 & 0.7969
+        \tabularnewline
+        \hline
+        Écart-type & 0.0111 & 0.0085 & 0.0098 & 0.135 & 0.0152 & 0.014
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    \begin{tabular}{| l | *{5}{c|}}
+        \hline
+        Nombre de variables & 21 & 22 & 23 & 24 & 25
+        \tabularnewline
+        \hline
+        Précision moyenne & 0.8038 & 0.8089 & 0.8064 & 0.8024 & 0.8012
+        \tabularnewline
+        \hline
+        Écart-type & 0.0132 & 0.0149 & 0.0138 & 0.0174 & 0.0186
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    On voit donc que la meilleure précision moyenne est atteinte en sélectionnant 22 variables, avec un écart-type
+    qui reste satisfaisant.
+
+    Nous avons donc décidé de sélectionner 22 variables pour tous nos modèles.
+
+    \subsection{Performances des modèles}
 
     \section{Performances Kaggle}
 
