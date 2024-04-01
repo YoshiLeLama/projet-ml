@@ -297,10 +297,6 @@ if __name__ == '__main__':
     scores = cross_val_score(model, X, Y, cv=5, scoring='accuracy')
     print(scores, scores.mean(), scores.std())
 
-    print(timeit(lambda: model.fit(train_X, train_Y), number=1))
-
-    exit(0)
-
     model = model.fit(train_X, train_Y)
 
     test_res = model.predict(test_X)
@@ -310,7 +306,6 @@ if __name__ == '__main__':
 
     print("Test accuracy :", accuracy_score(test_Y, test_res))
     print("Train accuracy :", accuracy_score(train_Y, train_res))
-
 
     sub_dataset = pd.read_csv('test.csv')
 
