@@ -11,6 +11,7 @@ catboost_info/
 *.fls
 *.log
 *.pdf
+*.out
 *synctex.gz
 
 afaire.txt

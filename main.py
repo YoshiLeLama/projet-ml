@@ -1,3 +1,4 @@
+from timeit import timeit
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
@@ -216,7 +217,7 @@ if __name__ == '__main__':
     
     dataset = dataset[kept_features + ['Transported']]
     
-    train_ds, test_ds = split_dataset(dataset, 0.05)
+    train_ds, test_ds = split_dataset(dataset, 0.1)
 
     train_X = train_ds.drop("Transported", axis=1)
     train_Y = train_ds['Transported']
@@ -235,11 +236,19 @@ if __name__ == '__main__':
     X = dataset.drop("Transported", axis=1)
     Y = dataset['Transported']
 
-    # grid_params = {'n_estimators': [50, 100, 150], 'max_depth': [4, 8, 12], 'learning_rate': [0.05, 0.1], 'num_leaves': [31, 63]}
+    # grid_params = {'n_estimators': [50, 100, 150], 'max_depth': [4, 8, 12], 'learning_rate': [0.05, 0.1, 0.15], 'num_leaves': [31, 63]}
     # clf = GridSearchCV(estimator=LGBMClassifier(n_jobs=8, random_state=0, verbose=-1), param_grid=grid_params).fit(X, Y)
+    # grid_params = {'n_estimators': [50, 100, 150], 'max_depth': [4, 8, 12], 'learning_rate': [0.05, 0.1, 0.15]}
+    # clf = GridSearchCV(estimator=GradientBoostingClassifier(), param_grid=grid_params).fit(X, Y)
+    # grid_params = {'n_estimators': [50, 100, 150, 200], 'max_depth': [4, 8, 12]}
+    # clf = GridSearchCV(estimator=RandomForestClassifier(), param_grid=grid_params).fit(X, Y)
+    # grid_params = {'n_estimators': [100, 150, 200], 'max_depth': [4, 8], 'learning_rate': [0.05, 0.1, 0.15]}
+    # clf = GridSearchCV(estimator=CatBoostClassifier(task_type='GPU'), param_grid=grid_params).fit(X, Y)
+    # grid_params = {'C': range(10, 40, 10), 'kernel':('poly', 'rbf')}
+    # clf = GridSearchCV(estimator=SVC(), param_grid=grid_params).fit(X, Y)
     # print("->", clf.best_params_)
     # print('->', clf.best_score_)
-
+    
     # model = clf.best_estimator_
 
     # lgb_params = {
@@ -274,17 +283,21 @@ if __name__ == '__main__':
     # model = random_search.best_estimator_
     # lgb_params=random_search.best_params_
 
-    model = CatBoostClassifier(n_estimators=200, max_depth=4)
-    # model = LGBMClassifier(n_estimators=150, learning_rate=0.15, max_depth=4, n_jobs=8, random_state=0, verbose=-1)
-    # model = GradientBoostingClassifier(n_estimators=200, learning_rate=0.05, max_depth=4, random_state=0)
-    # model = RandomForestClassifier(n_estimators=200, max_depth=4)
-    # model = SVC()
-    # model = GaussianNB()
+    model = CatBoostClassifier(n_estimators=150, max_depth=4, learning_rate=0.15, task_type='CPU', verbose=False)
+    # model = LGBMClassifier(n_estimators=100, learning_rate=0.05, max_depth=8, num_leaves=31, n_jobs=1, random_state=0, verbose=-1)
+    # model = GradientBoostingClassifier(n_estimators=150, learning_rate=0.05, max_depth=4, random_state=0)
+    # model = RandomForestClassifier(n_estimators=150, max_depth=8)
+    # model = SVC(C=30, kernel='rbf')
+    # model = GaussianNB(var_smoothing=1e-9)
+
+    
 
     print(model.get_params())
 
     scores = cross_val_score(model, X, Y, cv=5, scoring='accuracy')
     print(scores, scores.mean(), scores.std())
+
+    print(timeit(lambda: model.fit(train_X, train_Y), number=1))
 
     exit(0)
 
@@ -297,6 +310,7 @@ if __name__ == '__main__':
 
     print("Test accuracy :", accuracy_score(test_Y, test_res))
     print("Train accuracy :", accuracy_score(train_Y, train_res))
+
 
     sub_dataset = pd.read_csv('test.csv')
 

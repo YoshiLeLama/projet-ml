@@ -220,10 +220,14 @@
     Après avoir regardé les solutions données par les autres participants à la compétition, et en raison du grand nombre de variables booléennes que nous avons dans notre
     ensemble d'entraînement, nous avons commencé par utiliser des algorithmes à base de forêts.
 
+    \subsubsection{RandomForestClassifier}
+
     Tout d'abord, nous avons utilisé l'algorithme RandomForestClassifier, fourni par la bibliothèque scikit-learn.
     C'est un algorithme basé sur une forêt d'arbres de décision, ces derniers étant entraînés sur des sous-ensembles aléatoires de l'ensemble de départ.
     Les hyperparamètres que nous avons testés pour cet algorithme sont {\it n\_estimators}, qui détermine le nombre d'arbres d'arbres dans la forêt,
     et {\it max\_depth}, qui détermine la profondeur maximale des arbres.
+
+    \subsubsection{GradientBoostingClassifier}
 
     Nous avons ensuite essayé l'algorithme {\it GradientBoostingClassifier} et sa variante {\it HistGradientBoostingClassifier}, également de la bibliothèque scikit-learn.
     Comme leur nom l'indique, ils utilisent la technique du Gradient Boosting pour parvenir à leurs résultats. 
@@ -232,12 +236,16 @@
     Les hyperparamètres que nous avons testés pour ces algorithmes sont {\it learning\_rate}, le taux d'apprentissage qui définit l'importance de la contribution de chaque arbre ;
     {\it n\_estimators}, qui correspond au nombre d'étapes de boosting que l'algorithme va réaliser ; et {\it max\_depth} qui correspond à la profondeur maximale de chaque arbre.
 
+    \subsubsection{LGBMClassifier}
+
     Nous avons également testé un autre algorithme qui est revenu régulièrement dans les solutions des autres participants, qui est LGBMClassifier,
     de la bibliothèque LightGBM. Il s'agit également d'un algorithme de Gradient Boosting, et les auteurs promettent de meilleurs résultats et un temps 
     d'entraînement réduit par rapport aux autres algorithmes de Gradient Boosting.
     Tout comme le principe de l'algorithme, les hyperparamètres sont assez similaires à ceux de {\it GradientBoostingClassifier}. Nous avons donc testé les
     mêmes, à savoir {\it learning\_rate }, {\it n\_estimators} et {\it max\_depth}, et en plus de cela nous avons aussi testé {\it num\_leaves}. Ce dernier définit
     le nombre maximum de feuilles pour chacun des arbres construits par l'algorithme.
+
+    \subsubsection{CatBoostClassifier}
 
     Enfin, le dernier algorithme basé sur des arbres que nous avons testé est {\it CatBoostClassifier} de la bibliothèque CatBoost.
     Encore une fois, il s'agit d'un algorithme de Gradient Boosting sur des arbres de décision, mais qui promet toutefois 
@@ -249,11 +257,17 @@
 
     \subsection{Autres algorithmes testés}
 
-    Nous avons également testé {\it SVC} de scikit-learn, qui est l'implémentation de l'algorithme de classification basé sur les SVM, et
-    également {\it GaussianNB}, qui est l'implémentation de l'algorithme de classification naïve bayésienne.
-    Le paramètre que nous avons testé sur le premier est {\it C}, qui correspond à la constante {\it C}
-    des SVM.
-    Pour le second, nous n'avons pas testé d'hyperparamètres et avons gardé ceux par défaut.
+    \subsubsection{SVC}
+
+    Nous avons également testé {\it SVC} de scikit-learn, qui est l'implémentation de l'algorithme de classification basé sur les SVM.
+    Les hyperparamètres que nous avons testé pour cet algorithme est {\it C}, qui correspond à la constante {\it C}
+    des SVM, ainsi que {\it kernel}, qui correspond au type de noyau utilisé par la SVM.
+
+    \subsubsection{GaussianNB}
+
+    Enfin, nous avons essayé l'algorithme {\it GaussianNB} de scikit-learn, qui est l'implémentation de l'algorithme de classification naïve bayésienne.
+    Pour celui-ci, nous n'avons pas testé d'hyperparamètres et avons gardé ceux par défaut.
+
 
     \section{Plan de test}
 
@@ -345,11 +359,536 @@
 
     Nous avons donc décidé de sélectionner 22 variables pour tous nos modèles.
 
+    Les variables entières sélectionnées sont les suivantes :
+
+    \begin{tabular}{| l | *{10}{c|}}
+        \hline
+        Variable & NoSpending & CryoSleep & HP\_Earth & HP\_Europa & Side\_S & Solo
+        \tabularnewline
+        \hline
+        Score & 0.241 & 0.227 & 0.082 & 0.08 & 0.056 & 0.053
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    \begin{tabular}{| l | *{10}{c|}}
+        \hline
+        Variable & D\_55 Cancri e & Deck\_B & Deck\_F & D\_TRAPPIST-1e & 0-12
+        \tabularnewline
+        \hline
+        Score & 0.046 & 0.044 & 0.04 & 0.038 & 0.037
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    \begin{tabular}{| l | *{10}{c|}}
+        \hline
+        Variable & Cabin\_region1 & Deck\_C & Cabin\_region2 & Deck\_E & Cabin\_region4
+        \tabularnewline
+        \hline
+        Score & 0.032 & 0.031 & 0.03 & 0.28 & 0.024
+        \tabularnewline
+        \hline
+    \end{tabular}
+
     \subsection{Performances des modèles}
+
+    Dans cette section, nous allons comparer la précision des modèles entraînés par les différents algorithmes
+    listés dans les sections 3.2 et 3.3.
+
+    Pour chaque algorithme, nous utilisons la fonction {\it GridSearchCV} pour déterminer quelle est la meilleurs
+    combinaison hyperparamètres, parmi ceux que l'on lui donne.
+
+    Ensuite, on réalise une validation croisée avec 5 itérations, pour déterminer la précision moyenne et l'écart-type
+    pour le modèle.
+
+    On présentera toutefois des résultats avec des hyperparamètres non optimaux pour appuyer notre choix
+    final d'algorithme et d'hyperparamètres.
+
+    \subsubsection{RandomForestClassifier}
+
+    Nous avons commencé nos tests avec cet algorithme, car il reste assez simple et rapide pour nos premiers essais.
+
+    Les hyperparamètres testés sont les suivants :
+
+    \begin{tabular}{| l | *{2}{c|}}
+        \hline
+        Hyperparamètre & {\it n\_estimators} & {\it max\_depth}
+        \tabularnewline
+        \hline
+        Valeurs testées & 50, 100, 150, 200 & 4, 8, 12
+        \tabularnewline
+        \hline
+        Meilleurs hyperparamètres & 150 & 8
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Avec différentes combinaisons d'hyperparamètres, nous obtenons la précision suivante avec {\it RandomForestClassifier} :
+
+    \begin{tabular}{| l | *{2}{c|}}
+        \hline
+        Hyperparamètres & Précision moyenne & Écart-type de la précision
+        \tabularnewline
+        \hline
+        \textbf{\{150, 8\}} & \textbf{0.7971} & \textbf{0.0157} 
+        \tabularnewline
+        \hline
+        \{100, 8\} & 0.7959 & 0.017
+        \tabularnewline
+        \hline
+        \{200, 8\} & 0.7973 & 0.017
+        \tabularnewline
+        \hline
+        \{150, 4\} & 0.7484 & 0.0134
+        \tabularnewline
+        \hline
+        \{150, 12\} & 0.795 & 0.0203
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Ces résultats nous confirment bien que les hyperparamètres sélectionnés donnent de très bons résultats.
+    On peut aussi clairement voir qu'une valeur trop faible de profondeur maximale d'arbre peut entraîner
+    des résultats assez mauvais.
+
+    En entraînant plusieurs fois des modèles avec ces hyperparamètres, on obtient les précisions suivantes pour les prédictions 
+    sur les ensembles d'entraînement et de test (on prend un ensemble de test qui contient 10\% des données de départ) :
+
+    \begin{tabular}{| *{3}{c|}}
+        \hline
+        Modèle n° & Précision entraînement & Précision test
+        \tabularnewline
+        \hline
+        1 & 0.8305 & 0.796
+        \tabularnewline
+        \hline
+        2 & 0.8279 & 0.8014
+        \tabularnewline
+        \hline
+        3 & 0.8262 & 0.797
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    On obtient de bons résultats avec cet algorithme, sans faire de sur-entraînement étant donné que les précision
+    d'entraînement et de test sont similaires à chaque itération.
+    
+    Avec cet algorithme, pour la compétition, on a obtenu des résultats sautour de 0.78, s'approchant de 0.79.
+
+    Ces résultats n'étant pas à la hauteur des résultats obtenus par les autres participants, nous avons donc essayé d'autres algorithmes.
+
+    \subsubsection{GradientBoostingClassifier}
+
+    Nous avons ensuite testé {\it GradientBoostingClassifier}, qui est supposé donner de meilleurs résultats que {\it RandomForestClassifier}.
+
+    Les hyperparamètres testés sont les suivants :
+
+    \begin{tabular}{| l | *{3}{c|}}
+        \hline
+        Hyperparamètre & {\it n\_estimators} & {\it max\_depth} & {\it learning\_rate}
+        \tabularnewline
+        \hline
+        Valeurs testées & 50, 100, 150, 200 & 4, 8, 12 & 0.05, 0.1
+        \tabularnewline
+        \hline
+        Meilleurs hyperparamètres & 150 & 4 & 0.05
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Avec différentes combinaisons d'hyperparamètres, nous obtenons la précision suivante avec {\it LGBMClassifier} :
+
+    \begin{tabular}{| l | *{2}{c|}}
+        \hline
+        Hyperparamètres & Précision moyenne & Écart-type de la précision
+        \tabularnewline
+        \hline
+        \textbf{\{150, 4, 0.05\}} & \textbf{0.8054} & \textbf{0.012} 
+        \tabularnewline
+        \hline
+        \{100, 4, 0.05\} & 0.8036 & 0.0114
+        \tabularnewline
+        \hline
+        \{200, 4, 0.05\} & 0.8041 & 0.0153
+        \tabularnewline
+        \hline
+        \{150, 8, 0.05\} & 0.7957 & 0.0172
+        \tabularnewline
+        \hline
+        \{150, 4, 0.1\} & 0.8009 & 0.0181
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Ces résultats nous confirment bien que les hyperparamètres sélectionnés donnent de bons résultats.
+
+    En entraînant plusieurs fois des modèles avec ces hyperparamètres, on obtient les précisions suivantes pour les prédictions 
+    sur les ensembles d'entraînement et de test (on prend un ensemble de test qui contient 10\% des données de départ) :
+
+    \begin{tabular}{| *{3}{c|}}
+        \hline
+        Modèle n° & Précision entraînement & Précision test
+        \tabularnewline
+        \hline
+        1 & 0.8298 & 0.8077
+        \tabularnewline
+        \hline
+        2 & 0.8336 & 0.7939
+        \tabularnewline
+        \hline
+        3 & 0.8292 & 0.8077
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    On obtient de bons résultats avec cet algorithme,
+    meilleurs que ceux de {\it RandomForestClassifier}, 
+    sans faire de sur-entraînement étant donné que les précision
+    d'entraînement et de test sont similaires à chaque itération.
+    
+    Avec cet algorithme, pour la compétition, on a obtenu des scores supérieurs à 0.79, s'approchant de 0.80.
+
+    On avait toutefois du mal à dépasser 0.80, donc nous avons cherché d'autres algorithmes à utiliser.
+
+    \subsubsection{LGBMClassifier}
+
+    L'algorithme suivant que nous avons testé est {\it LGBMClassifier}. Il est supposé être meilleur que les précédents,
+    en étant également plus rapide.
+    
+    Les hyperparamètres testés sont les suivants :
+
+    \begin{tabular}{| l | *{4}{c|}}
+        \hline
+        Hyperparamètre & {\it n\_estimators} & {\it max\_depth} & {\it learning\_rate} & {\it num\_leaves} 
+        \tabularnewline
+        \hline
+        Valeurs testées & 50, 100, 150 & 4, 8, 12 & 0.05, 0.1 & 31, 63
+        \tabularnewline
+        \hline
+        Meilleurs hyperparamètres & 100 & 8 & 0.05 & 31
+        \tabularnewline
+        \hline
+    \end{tabular}
+    
+    Avec différentes combinaisons d'hyperparamètres, nous obtenons la précision suivante avec {\it LGBMClassifier} :
+
+    \begin{tabular}{| l | *{2}{c|}}
+        \hline
+        Hyperparamètres & Précision moyenne & Écart-type de la précision
+        \tabularnewline
+        \hline
+        \textbf{\{150, 8, 0.05, 31\}} & \textbf{0.8045} & \textbf{0.015}
+        \tabularnewline
+        \hline
+        \{150, 8, 0.05, 31\} & 0.8024 & 0.0188
+        \tabularnewline
+        \hline
+        \{100, 4, 0.05, 31\} & 0.8025 & 0.0139
+        \tabularnewline
+        \hline
+        \{100, 12, 0.05, 31\} & 0.7994 & 0.0203
+        \tabularnewline
+        \hline
+        \{100, 4, 0.1, 31\} & 0.8028 & 0.0185
+        \tabularnewline
+        \hline
+        \{100, 4, 0.05, 63\} & 0.7995 & 0.0169
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Ces résultats nous confirment bien que les hyperparamètres sélectionnés donnent de bons résultats.
+
+    En entraînant plusieurs fois des modèles avec la meilleure combinaison d'hyperparamètres, 
+    on obtient les précisions suivantes pour les prédictions 
+    sur les ensembles d'entraînement et de test (on prend un ensemble de test qui contient 10\% des données de départ) :
+
+    \begin{tabular}{| *{3}{c|}}
+        \hline
+        Modèle n° & Précision entraînement & Précision test
+        \tabularnewline
+        \hline
+        1 & 0.8354 & 0.8314
+        \tabularnewline
+        \hline
+        2 & 0.841 & 0.799
+        \tabularnewline
+        \hline
+        3 & 0.8395 & 0.803
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    On obtient de bons résultats avec cet algorithme, même si la précision de prédiction sur l'ensemble de test
+    varie de manière relativement importante entre les itérations. 
+    
+    Ces résultats sont légèrement meilleurs que ceux
+    de {\it GradientBoostingClassifier}, même si la différence n'est pas significative.
+
+    On ne fait pas de sur-entraînement, car la précision pour les ensembles de test et d'entraînement est assez similaire.
+
+    Avec les hyperparamètres sélectionnés plus haut, nous avons obtenu des scores légèrement supérieurs à 0.80 pour la compétition.
+
+    Pour atteindre 0.81, nous avons donc cherché un autre algorithme.
+    
+    \subsubsection{CatBoostClassifier}
+
+    Le dernier algorithme basé sur des forêts est donc {\it CatBoostClassifier}. Il est extrêmement rapide par rapport aux autres
+    algorithmes testés, et peut facilement être entraîné par le GPU plutôt que le CPU pour de meilleures performances encore,
+    celles-ci seront détaillées dans une sous-section plus loin.
+
+    Les hyperparamètres testés sont les suivants :
+
+    \begin{tabular}{| l | *{3}{c|}}
+        \hline
+        Hyperparamètre & {\it n\_estimators} & {\it max\_depth} & {\it learning\_rate}
+        \tabularnewline
+        \hline
+        Valeurs testées & 50, 100, 150, 200 & 4, 8, 12 & 0.05, 0.1, 0.15
+        \tabularnewline
+        \hline
+        Meilleurs hyperparamètres & 150 & 4 & 0.15
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Avec différentes combinaisons d'hyperparamètres, nous obtenons la précision suivante avec {\it CatBoostClassifier} :
+
+    \begin{tabular}{| l | *{2}{c|}}
+        \hline
+        Hyperparamètres & Précision moyenne & Écart-type de la précision
+        \tabularnewline
+        \hline
+        \textbf{\{150, 4, 0.15\}} & \textbf{0.8066} & \textbf{0.0154} 
+        \tabularnewline
+        \hline
+        \{100, 4, 0.15\} & 0.8052 & 0.0131
+        \tabularnewline
+        \hline
+        \{200, 4, 0.15\} & 0.8052 & 0.0179
+        \tabularnewline
+        \hline
+        \{150, 8, 0.15\} & 0.8029 & 0.0222
+        \tabularnewline
+        \hline
+        \{150, 12, 0.15\} & 0.7864 & 0.0151
+        \tabularnewline
+        \hline
+        \{150, 4, 0.1\} & 0.8052 & 0.0179
+        \tabularnewline
+        \hline
+        \{150, 4, 0.05\} & 0.8034 & 0.0134
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Ces résultats nous confirment bien que les hyperparamètres sélectionnés donnent de très bons résultats.
+
+    En entraînant plusieurs fois des modèles avec ces hyperparamètres, on obtient les précisions suivantes pour les prédictions 
+    sur les ensembles d'entraînement et de test (on prend un ensemble de test qui contient 10\% des données de départ) :
+
+    \begin{tabular}{| *{3}{c|}}
+        \hline
+        Modèle n° & Précision entraînement & Précision test
+        \tabularnewline
+        \hline
+        1 & 0.8325 & 0.8231
+        \tabularnewline
+        \hline
+        2 & 0.8302 & 0.8337
+        \tabularnewline
+        \hline
+        3 & 0.8352 & 0.8129
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    On obtient donc des résultats très bons, et l'écart entre la précision de la prédiction sur l'ensemble de test
+    et l'ensemble d'entraînement est assez faible, ce qui confirme que nous ne faisons pas de sur-entraînement.
+
+    On obtient de bien meilleurs résultats qu'avec les autres algorithmes.
+
+    En effet, c'est l'algorithme qui nous a permis d'obtenir les meilleurs résultats pour la compétition.
+    Avec cet algorithme, nous avons obtenu le score de 0.81248, alors que nous ne parvenions pas à dépasser 0.81
+    avec les autres algorithmes.
+
+    Pour obtenir ce score, nous avons utilisé les mêmes hyperparamètres que ceux sélectionnés plus haut, à l'exception
+    du {\it learning\_rate} qui a été calculé automatiquement par l'algorithme, mais qui restait proche de 0.15 tout de même.
+
+    Les deux algorithmes suivants sont à titre de comparaison pour voir les performances des techniques
+    n'utilisant pas d'arbres de décision.
+
+    \subsubsection{SVC}
+
+    {\it SVC} est basé sur les SVM.
+
+    Les hyperparamètres testés sont les suivants :
+
+    \begin{tabular}{| l | *{2}{c|}}
+        \hline
+        Hyperparamètre & {\it C} & {\it kernel}
+        \tabularnewline
+        \hline
+        Valeurs testées & 1, 10, 20, 30, 40, 50 & rbf, poly
+        \tabularnewline
+        \hline
+        Meilleurs hyperparamètres & 30 & rbf
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Avec différentes combinaisons d'hyperparamètres, nous obtenons la précision suivante avec {\it SVC} :
+
+    \begin{tabular}{| l | *{2}{c|}}
+        \hline
+        Hyperparamètres & Précision moyenne & Écart-type de la précision
+        \tabularnewline
+        \hline
+        \textbf{\{30, rbf\}} & \textbf{0.8} & \textbf{0.0193} 
+        \tabularnewline
+        \hline
+        \{20, rbf\} & 0.7998 & 0.0177
+        \tabularnewline
+        \hline
+        \{40, rbf\} & 0.7993 & 0.01906
+        \tabularnewline
+        \hline
+        \{30, poly\} & 0.792 & 0.016
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Ces résultats nous confirment bien que les hyperparamètres sélectionnés donnent les meilleurs résultats.
+
+    En entraînant plusieurs fois des modèles avec ces hyperparamètres, on obtient les précisions suivantes pour les prédictions 
+    sur les ensembles d'entraînement et de test (on prend un ensemble de test qui contient 10\% des données de départ) :
+
+    \begin{tabular}{| *{3}{c|}}
+        \hline
+        Modèle n° & Précision entraînement & Précision test
+        \tabularnewline
+        \hline
+        1 & 0.8232 & 0.8146
+        \tabularnewline
+        \hline
+        2 & 0.8218 & 0.8089
+        \tabularnewline
+        \hline
+        3 & 0.8209 & 0.823
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Finalement, on obtient des résultats qui sont très corrects, meilleurs qu'avec {\it RandomForestClassifier} par exemple.
+
+    Avec cet algorithme, on obtient des scores supérieurs à 0.80 pour la compétition,
+    ce qui prouve qu'il est bien possible d'obtenir de bons résultats sans utiliser d'algorithmes basés sur des
+    forêts, et qui montre la polyvalence des SVM.
+
+    \subsubsection{GaussianNB}
+
+    Hyperparamètres testés :
+
+    Pour l'algorithme bayésien naïf, nous avons gardé les hyperparamètres par défaut de scikit-learn.
+    L'hyperparamètre principal de cet algorithme est {\it var\_smoothing}, qui définit à quel point
+    on veut éliminer les exemples qui s'éloignent de la moyenne de la distribution. Plus sa valeur est
+    élevée, plus on va prendre en compte d'exemples pour le calcul des probabilités bayésiennes.
+    Sa valeur par défaut est $1\times10^{-9}$, la faire varier ne change pas grand chose aux résultats obtenus.
+
+    Nous obtenons la précision suivante avec {\it CatBoostClassifier} :
+
+    \begin{tabular}{| l | *{2}{c|}}
+        \hline
+        Hyperparamètres & Précision moyenne & Écart-type de la précision
+        \tabularnewline
+        \hline
+        \textbf{Par défaut} & \textbf{0.7506} & \textbf{0.0144}
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    En entraînant plusieurs fois des modèles avec ces hyperparamètres, on obtient les précisions suivantes pour les prédictions 
+    sur les ensembles d'entraînement et de test (on prend un ensemble de test qui contient 10\% des données de départ) :
+
+    \begin{tabular}{| *{3}{c|}}
+        \hline
+        Modèle n° & Précision entraînement & Précision test
+        \tabularnewline
+        \hline
+        1 & 0.7484 & 0.7648
+        \tabularnewline
+        \hline
+        2 & 0.7489 & 0.7636
+        \tabularnewline
+        \hline
+        3 & 0.7496 & 0.7483
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    Les résultats que l'on obtient sont assez faibles par rapport à ceux retournés par les autres algorithmes.
+
+    Cela montre que l'algorithme bayésien naïf n'est pas tellement adapté à notre problème.
+
+    Nous n'avons pas fait de soumission sur Kaggle avec les résultats obtenus par les modèles
+    entraînés par cet algorithme.
+
+    \subsubsection{Résumé des résultats, avec performances en temps}
+
+    La précision est donnée en terme de précision moyenne sur les 3 essais réalisés pour chaque algorithme,
+    avec les hyperparamètres optimaux trouvés par la validation croisée.
+
+    Les différences en temps de prédiction sont négligeables sur les essais que nous avons réalisés,
+    nous les avons donc omis ci-dessous.
+
+    \begin{tabular}{| l | *{3}{c|}}
+        \hline
+        Algorithme & Préc. entraînement & Préc. test & Temps entraînement
+        \tabularnewline
+        \hline
+        {\it RandomForestClassifier} & 0.8279 & 0.797 & 500 ms
+        \tabularnewline
+        \hline
+        {\it GradientBoostingClassifier} & 0.8298 & 0.8077 & 1500 ms
+        \tabularnewline
+        \hline
+        {\it LGBMClassifier} & 0.8395 & 0.803 & 100 ms
+        \tabularnewline
+        \hline
+        {\it CatBoostClassifier} & 0.8325 & 0.8231 & 250 ms
+        \tabularnewline
+        \hline
+        {\it SVC} & 0.8218 & 0.8146 & 1500 ms
+        \tabularnewline
+        \hline
+        {\it GaussianNB} & 0.7489 & 0.7636 & 5 ms
+        \tabularnewline
+        \hline
+    \end{tabular}
+
+    On peut donc voir que le temps d'entraînement n'est pas forcément lié à la précision que nous obtenons.
+    Les modèles les plus lents à entraîner ne produisent pas les meilleurs résultats dans notre cas.
+
+    \newpage
 
     \section{Performances Kaggle}
 
-    Nous avons obtenu un score de 0.81248 ce qui nous met à la 88ème place du classement (au 18 mars 2024).
+    Nous avons obtenu un score de 0.81248 avec l'algorithme {\it CatBoostClassifier}, ce qui nous place au 161ème rang du classement global au 1er avril 2024.
 
+    Nous avons réalisé 72 soumissions jusqu'à obtenir ce résultat, avec les différents algorithmes présentés plus haut (sauf GaussianNB).
 
+    Notre nom d'équipe est "On coule".
+
+    Nos pseudonymes sur Kaggle sont :
+
+    - yoshilelama : Antoine Roumilhac
+    
+    - djelloudinabil : Nabil Djelloul
+
+    - albanrio : Alban Rio
+
+    - yacinebrahmia : Yacine Brahmia
+
+    \illustration{images/kaggle.png}{Résultats Kaggle}{\textwidth}
 \end{document}
