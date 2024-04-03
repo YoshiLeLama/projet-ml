@@ -42,7 +42,7 @@
     \illustration{images/Figure 1.png}{Heatmap des données manquantes sur l'ensemble d'entraînement}{6cm}
     \subsection{Variables intéressantes}
 
-    La variable CryoSleep semble être très intéressante à utiliser, car comme présenté sur la figure 2, les personnes ayant pris le CryoSleep n'ont très majoritairement pas été transportées,
+    La variable CryoSleep semble être très intéressante à utiliser, car comme présenté sur la figure 2, les personnes n'ayant pas pris le CryoSleep n'ont très majoritairement pas été transportées,
     et inversement les personnes ayant pris le CryoSleep ont très majoritairement été transportées.
     
     On peut voir sur la figure 3 que les personnes ayant entre 0 et 12 ans ont été transportées en majorité, 
@@ -836,8 +836,8 @@
 
     \subsubsection{Résumé des résultats, avec performances en temps}
 
-    La précision est donnée en terme de précision moyenne sur les 3 essais réalisés pour chaque algorithme,
-    avec les hyperparamètres optimaux trouvés par la validation croisée.
+    La précision est donnée en terme de précision médiane sur les 3 essais réalisés pour chaque algorithme,
+    avec les hyperparamètres optimaux trouvés par la recherche avec GridSearchCV.
 
     Les différences en temps de prédiction sont négligeables sur les essais que nous avons réalisés,
     nous les avons donc omis ci-dessous.
